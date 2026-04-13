@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VPN Simulator with Wireshark</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔒 VPN Simulator with Wireshark</h1>
+            <div class="status-badge" id="statusBadge">
+                <span class="status-dot"></span>
+                <span id="statusText">Disconnected</span>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <!-- Connection Panel -->
+            <div class="panel connection-panel">
+                <h2>Connection</h2>
+                <div class="ip-display">
+                    <div class="ip-item">
+                        <label>Your IP:</label>
+                        <span id="originalIp">192.168.1.100</span>
+                    </div>
+                    <div class="ip-item" id="vpnIpContainer" style="display: none;">
+                        <label>VPN IP:</label>
+                        <span id="vpnIp" class="vpn-ip">-</span>
+                    </div>
+                </div>
+                
+                <div id="serverSelect" class="server-select">
+                    <label for="serverDropdown">Select Server:</label>
+                    <select id="serverDropdown">
+                        <option value="">Choose a server...</option>
+                    </select>
+                </div>
+
+                <button id="connectBtn" class="btn btn-primary">Connect</button>
+                <button id="disconnectBtn" class="btn btn-danger" style="display: none;">Disconnect</button>
+                
+                <div id="connectionInfo" style="display: none;">
+                    <p><strong>Connected to:</strong> <span id="connectedServer">-</span></p>
+                    <p><strong>Location:</strong> <span id="connectedLocation">-</span></p>
+                    <p><strong>Connected since:</strong> <span id="connectionTime">-</span></p>
+                </div>
+            </div>
+
+            <!-- IP Access Control -->
+            <div class="panel ip-control-panel">
+                <h2>IP Access Control</h2>
+                <div class="current-ip-section">
+                    <label>Current IP:</label>
+                    <span id="currentIp" class="current-ip">192.168.1.100</span>
+                    <button id="changeIpBtn" class="btn btn-small">Change IP</button>
+                </div>
+                
+                <div class="ip-check-section">
+                    <input type="text" id="ipCheckInput" placeholder="Enter IP to check..." class="ip-input">
+                    <button id="checkIpBtn" class="btn btn-small btn-primary">Check IP</button>
+                    <div id="ipCheckResult" class="ip-check-result" style="display: none;"></div>
+                </div>
+
+                <div class="ip-lists">
+                    <div class="ip-list-section">
+                        <h3>✓ Allowed IPs (Whitelist)</h3>
+                        <div id="allowedIpList" class="ip-list"></div>
+                    </div>
+                    <div class="ip-list-section">
+                        <h3>✗ Blocked IPs (Blacklist)</h3>
+                        <div id="blockedIpList" class="ip-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Wireshark Packet Capture -->
+            <div class="panel wireshark-panel">
+                <h2>📊 Wireshark Packet Capture</h2>
+                <div class="capture-controls">
+                    <button id="startCaptureBtn" class="btn btn-small btn-success" disabled>Start Capture</button>
+                    <button id="stopCaptureBtn" class="btn btn-small btn-danger" disabled>Stop Capture</button>
+                    <span class="capture-status">Status: <span id="captureStatus">Idle</span></span>
+                    <span class="capture-total">Total: <span id="totalPackets">0</span> packets</span>
+                    <span class="capture-encrypted">🔒 Encrypted: <span id="encryptedPackets">0</span></span>
+                </div>
+                
+                <div class="packet-list-container">
+                    <h3>Recent Packets</h3>
+                    <div id="packetList" class="packet-list">
+                        <p class="loading">No packets captured yet</p>
+                    </div>
+                </div>
+                
+                <div class="protocol-chart-container">
+                    <h3>Protocol Distribution</h3>
+                    <div id="protocolChart" class="protocol-chart"></div>
+                </div>
+            </div>
+
+            <!-- Traffic Stats -->
+            <div class="panel stats-panel">
+                <h2>Traffic Statistics</h2>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-icon">📤</div>
+                        <div class="stat-info">
+                            <label>Data Sent</label>
+                            <span id="dataSent" class="stat-value">0 KB</span>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon">📥</div>
+                        <div class="stat-info">
+                            <label>Data Received</label>
+                            <span id="dataReceived" class="stat-value">0 KB</span>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon">⬆️</div>
+                        <div class="stat-info">
+                            <label>Upload Speed</label>
+                            <span id="uploadSpeed" class="stat-value">0 KB/s</span>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon">⬇️</div>
+                        <div class="stat-info">
+                            <label>Download Speed</label>
+                            <span id="downloadSpeed" class="stat-value">0 KB/s</span>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon">⚡</div>
+                        <div class="stat-info">
+                            <label>Ping</label>
+                            <span id="ping" class="stat-value">0 ms</span>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon">📦</div>
+                        <div class="stat-info">
+                            <label>Packets Sent</label>
+                            <span id="packetsSent" class="stat-value">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon">📦</div>
+                        <div class="stat-info">
+                            <label>Packets Received</label>
+                            <span id="packetsReceived" class="stat-value">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Info -->
+            <div class="panel security-panel">
+                <h2>Security Information</h2>
+                <div class="security-grid">
+                    <div class="security-item">
+                        <div class="security-icon">🔐</div>
+                        <div class="security-info">
+                            <label>Encryption</label>
+                            <span id="encryption" class="security-value">AES-256-GCM</span>
+                        </div>
+                    </div>
+                    <div class="security-item">
+                        <div class="security-icon">🔒</div>
+                        <div class="security-info">
+                            <label>Protocol</label>
+                            <span id="protocol" class="security-value">OpenVPN</span>
+                        </div>
+                    </div>
+                    <div class="security-item">
+                        <div class="security-icon">⚡</div>
+                        <div class="security-info">
+                            <label>Encryption Status</label>
+                            <span id="encryptionStatus" class="security-value">Inactive</span>
+                        </div>
+                    </div>
+                    <div class="security-item">
+                        <div class="security-icon">🔑</div>
+                        <div class="security-info">
+                            <label>Session ID</label>
+                            <span id="sessionId" class="security-value">-</span>
+                        </div>
+                    </div>
+                    <div class="security-item">
+                        <div class="security-icon">🛡️</div>
+                        <div class="security-info">
+                            <label>Kill Switch</label>
+                            <span class="security-value status-enabled">Enabled</span>
+                        </div>
+                    </div>
+                    <div class="security-item">
+                        <div class="security-icon">🚫</div>
+                        <div class="security-info">
+                            <label>DNS Leak Protection</label>
+                            <span class="security-value status-enabled">Active</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Server List -->
+            <div class="panel servers-panel">
+                <h2>Available Servers</h2>
+                <div id="serverList" class="server-list">
+                    <p class="loading">Loading servers...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="app.js?v=2"></script>
+</body>
+</html>
